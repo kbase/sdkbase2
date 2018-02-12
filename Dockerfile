@@ -11,7 +11,7 @@ ARG VCS_REF
 ARG BRANCH=develop
 
 # Some common packages that are useful
-RUN apt-get update -y && apt-get install -y apt-transport-https ca-certificates make git apt-utils bzip2 unzip xz-utils ant
+RUN apt-get update -y && apt-get install -y apt-transport-https ca-certificates make git apt-utils bzip2 unzip xz-utils ant rsync
 
 # Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -68,11 +68,13 @@ RUN set -ex; \
 
 # Python support
 RUN apt-get install python-dev libssl-dev \
-    && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml \
+    && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
     && pip install requests --upgrade \
     && pip install requests_toolbelt --upgrade \
     && pip install 'requests[security]' --upgrade \
-    && pip install coverage
+    && pip install coverage \
+	&& pip install --upgrade sphinx \
+	&& pip install wsgiref jsonrpcbase
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
