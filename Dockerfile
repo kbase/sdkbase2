@@ -65,8 +65,8 @@ RUN set -ex; \
 # ... and verify that it actually worked for one of the alternatives we care about
 	update-alternatives --query java | grep -q 'Status: manual'
 
-# Install jetty9 by default
-RUN apt-get install -y jetty9
+# Install various servers by default
+RUN apt-get install -y jetty9 uwsgi 
 ENV JETTY_HOME /usr/share/jetty9
 
 # Python support
@@ -85,6 +85,10 @@ RUN mkdir /root/src \
 	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
 	&& make
+
+# Setup some legacy directories and files
+RUN mkdir -p /kb/deployment/lib
+COPY user-env.sh /kb/deployment/user-env.sh
 
 ENV PATH=$PATH:/root/src/kb_sdk/bin
 
