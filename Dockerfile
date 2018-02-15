@@ -84,8 +84,14 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
 	&& apt-get install -y docker-ce
 
 # Install JS support
-RUN apt-get install -y phantomjs
+RUN apt-get install -y phantomjs \
+	&& cd ~/src \
+	&& clone git://github.com/casperjs/casperjs.git \
+	&& cd casperjs \
+	&& ln -sf `pwd`/bin/casperjs /usr/local/bin/casperjs
 
+# The Debian phantomjs is a little wonky and needs to have this set to run headless
+ENV QT_QPA_PLATFORM=offscreen
 
 # Install kb-sdk in the image
 RUN mkdir /root/src \
