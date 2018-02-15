@@ -11,16 +11,15 @@ ARG VCS_REF
 ARG BRANCH=develop
 
 # Some common packages that are useful
-RUN apt-get update -y && apt-get install -y apt-transport-https ca-certificates make \
-    	git apt-utils bzip2 unzip xz-utils ant rsync
+RUN apt-get update -y \
+	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl
 
 # Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get install -y --no-install-recommends \
 		bzip2 \
 		unzip \
-		xz-utils \
-	&& rm -rf /var/lib/apt/lists/*
-
+		xz-utils
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8
 
@@ -52,7 +51,6 @@ RUN set -ex; \
 		mkdir -p /usr/share/man/man1; \
 	fi; \
 	\
-	apt-get update; \
 	apt-get install -y \
 		openjdk-8-jdk-headless="$JAVA_DEBIAN_VERSION" \
 		ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
@@ -75,9 +73,19 @@ RUN apt-get install python-dev libssl-dev \
     && pip install requests --upgrade \
     && pip install requests_toolbelt --upgrade \
     && pip install 'requests[security]' --upgrade \
-    && pip install coverage \
+    && pip install coverage nose2 \
 	&& pip install --upgrade sphinx \
 	&& pip install wsgiref jsonrpcbase
+
+# Docker support
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
+	&& apt-get update \
+	&& apt-get install -y docker-ce
+
+# Install JS support
+RUN apt-get install -y phantomjs
+
 
 # Install kb-sdk in the image
 RUN mkdir /root/src \
