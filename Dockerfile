@@ -85,8 +85,9 @@ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
 
 # Install JS support
 RUN apt-get install -y phantomjs \
+	&& mkdir ~/src \
 	&& cd ~/src \
-	&& clone git://github.com/casperjs/casperjs.git \
+	&& git clone git://github.com/casperjs/casperjs.git \
 	&& cd casperjs \
 	&& ln -sf `pwd`/bin/casperjs /usr/local/bin/casperjs
 
@@ -94,17 +95,29 @@ RUN apt-get install -y phantomjs \
 ENV QT_QPA_PLATFORM=offscreen
 
 # Install kb-sdk in the image
-RUN mkdir /root/src \
-	&& cd /root/src \
+RUN cd /root/src \
 	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
 	&& make
 
 # Setup some legacy directories and files
-RUN mkdir -p /kb/deployment/lib
+RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
 COPY user-env.sh /kb/deployment/user-env.sh
 
+# Setup support libraries
+RUN cd /tmp \
+	&& git clone https://github.com/kbase/workspace_deluxe \
+	&& cd workspace_deluxe \
+	&& cp -vr lib/* /kb/deployment/lib/ \
+	&& cd /tmp \
+	&& git clone https://github.com/kbase/auth \
+	&& cd auth \
+	&& cp -vr python-libs/biokbase /kb/deployment/lib/ \
+	&& cp -vr Bio-KBase-Auth/lib/Bio /kb/deployment/lib/ \
+	&& rm -rf /tmp/*
+	
 ENV PATH=$PATH:/root/src/kb_sdk/bin
+ENV PERL5LIB=/kb/deployment/lib
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
