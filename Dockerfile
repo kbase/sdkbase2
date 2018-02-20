@@ -68,34 +68,28 @@ RUN apt-get install -y jetty9 uwsgi
 ENV JETTY_HOME /usr/share/jetty9
 
 # Python support
-RUN apt-get install python-dev libssl-dev \
+RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip \
     && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
     && pip install requests --upgrade \
     && pip install requests_toolbelt --upgrade \
     && pip install 'requests[security]' --upgrade \
-    && pip install coverage nose2 \
+    && pip install coverage nose2 nose \
 	&& pip install --upgrade sphinx \
-	&& pip install wsgiref jsonrpcbase
+	&& pip install wsgiref jsonrpcbase biopython \
+	&& pip3 install jsonrpcbase biopython
 
 # Docker support
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
-	&& apt-get update \
-	&& apt-get install -y docker-ce
-
-# Install JS support
-RUN apt-get install -y phantomjs \
-	&& mkdir ~/src \
-	&& cd ~/src \
-	&& git clone git://github.com/casperjs/casperjs.git \
-	&& cd casperjs \
-	&& ln -sf `pwd`/bin/casperjs /usr/local/bin/casperjs
+#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+#	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
+#	&& apt-get update \
+#	&& apt-get install -y docker-ce
 
 # The Debian phantomjs is a little wonky and needs to have this set to run headless
-ENV QT_QPA_PLATFORM=offscreen
+#ENV QT_QPA_PLATFORM=offscreen
 
 # Install kb-sdk in the image
-RUN cd /root/src \
+RUN mkdir /root/src \
+	&& cd /root/src \
 	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
 	&& make
@@ -114,6 +108,9 @@ RUN cd /tmp \
 	&& cd auth \
 	&& cp -vr python-libs/biokbase /kb/deployment/lib/ \
 	&& cp -vr Bio-KBase-Auth/lib/Bio /kb/deployment/lib/ \
+	&& cd ~/src/kb_sdk \
+	&& cp -vr lib/biokbase /kb/deployment/lib/ \
+	&& cp -vr lib/Bio /kb/deployment/lib/ \
 	&& rm -rf /tmp/*
 	
 ENV PATH=$PATH:/root/src/kb_sdk/bin
