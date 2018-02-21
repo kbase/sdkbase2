@@ -111,10 +111,17 @@ RUN cd /tmp \
 	&& cd ~/src/kb_sdk \
 	&& cp -vr lib/biokbase /kb/deployment/lib/ \
 	&& cp -vr lib/Bio /kb/deployment/lib/ \
+	&& cd /tmp \
+	&& git clone https://github.com/kbase/jars \
+	&& cd /tmp/jars \
+	&& cp -vr lib/jars /kb/deployment/lib/ \
 	&& rm -rf /tmp/*
 	
 ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
+ENV PYTHONPATH=/kb/deployment/lib
+ENV ANT_HOME=/usr/share/ant
+ENV KB_RUNTIME=/usr
 
 # The BUILD_DATE value seem to bust the docker cache when the timestamp changes, move to
 # the end
