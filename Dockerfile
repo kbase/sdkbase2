@@ -13,7 +13,7 @@ ARG BRANCH=develop
 # Some common packages that are useful
 RUN apt-get update -y \
 	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
-    	git apt-utils bzip2 unzip xz-utils ant rsync curl
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl gnupg
 
 # Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get install -y --no-install-recommends \
@@ -64,35 +64,49 @@ RUN set -ex; \
 	update-alternatives --query java | grep -q 'Status: manual'
 
 # Install various servers by default
-RUN apt-get install -y jetty9 uwsgi 
+RUN apt-get install -y jetty9
 ENV JETTY_HOME /usr/share/jetty9
 
+#install conda
+RUN curl https://repo.continuum.io/miniconda/Miniconda3-4.3.31-Linux-x86_64.sh > miniconda.sh && \
+    bash miniconda.sh -b -p /miniconda
+ENV PATH=/miniconda/bin:${PATH}
+
+# Docker support
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
+	&& apt-get update \
+	&& apt-get install -y docker-ce
+
+# Install JS support
+RUN apt-get install -y phantomjs \
+    && mkdir -p /root/src \
+	&& cd ~/src \
+	&& git clone git://github.com/casperjs/casperjs.git \
+	&& cd casperjs \
+	&& ln -sf `pwd`/bin/casperjs /usr/local/bin/casperjs
+
+# The Debian phantomjs is a little wonky and needs to have this set to run headless
+ENV QT_QPA_PLATFORM=offscreen
+
+# Install kb-sdk in the image
+RUN mkdir -p /root/src \
+	&& cd /root/src \
+	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
+	&& cd kb_sdk \
+	&& git checkout python3 \
+	&& make
+
 # Python support
-RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip \
-    && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
+RUN pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
     && pip install requests --upgrade \
     && pip install requests_toolbelt --upgrade \
     && pip install 'requests[security]' --upgrade \
-    && pip install coverage nose2 nose \
+    && pip install coverage nose nose2 \
 	&& pip install --upgrade sphinx \
-	&& pip install wsgiref jsonrpcbase biopython \
-	&& pip3 install jsonrpcbase biopython
-
-# Docker support
-#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-#	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
-#	&& apt-get update \
-#	&& apt-get install -y docker-ce
-
-# The Debian phantomjs is a little wonky and needs to have this set to run headless
-#ENV QT_QPA_PLATFORM=offscreen
-
-# Install kb-sdk in the image
-RUN mkdir /root/src \
-	&& cd /root/src \
-	&& git clone https://github.com/kbase/kb_sdk.git \
-	&& cd kb_sdk \
-	&& make
+	&& pip install jsonrpcbase
+RUN conda install -c conda-forge uwsgi
+RUN conda install biopython
 
 # Setup some legacy directories and files
 RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
@@ -116,7 +130,7 @@ RUN cd /tmp \
 	&& cd /tmp/jars \
 	&& cp -vr lib/jars /kb/deployment/lib/ \
 	&& rm -rf /tmp/*
-	
+
 ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
 ENV PYTHONPATH=/kb/deployment/lib
