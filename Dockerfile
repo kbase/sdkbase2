@@ -13,7 +13,7 @@ ARG BRANCH=develop
 # Some common packages that are useful
 RUN apt-get update -y \
 	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
-    	git apt-utils bzip2 unzip xz-utils ant rsync curl
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo
 
 # Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get install -y --no-install-recommends \
@@ -92,7 +92,8 @@ RUN mkdir /root/src \
 	&& cd /root/src \
 	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
-	&& make
+	&& make \
+	&& cp bin/kb-sdk /usr/local/bin
 
 # Setup some legacy directories and files
 RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
@@ -108,6 +109,11 @@ RUN cd /tmp \
 	&& cd auth \
 	&& cp -vr python-libs/biokbase /kb/deployment/lib/ \
 	&& cp -vr Bio-KBase-Auth/lib/Bio /kb/deployment/lib/ \
+	&& cd /tmp \
+	&& cd /tmp \
+	&& git clone https://github.com/kbase/handle_mngr \
+	&& cd handle_mngr \
+	&& cp -vr lib/* /kb/deployment/lib/ \
 	&& cd ~/src/kb_sdk \
 	&& cp -vr lib/biokbase /kb/deployment/lib/ \
 	&& cp -vr lib/Bio /kb/deployment/lib/ \
@@ -116,8 +122,10 @@ RUN cd /tmp \
 	&& cd /tmp/jars \
 	&& cp -vr lib/jars /kb/deployment/lib/ \
 	&& rm -rf /tmp/*
-	
-ENV PATH=$PATH:/root/src/kb_sdk/bin
+
+ADD lib/biokbase/ /kb/deployment/lib/biokbase/
+
+# ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
 ENV PYTHONPATH=/kb/deployment/lib
 ENV ANT_HOME=/usr/share/ant
