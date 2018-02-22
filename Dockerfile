@@ -1,4 +1,4 @@
-FROM kbase/kb_perl:latest
+FROM kbase/kb_minideb:stretch
 # This container is intended to be a slightly updated version of sdkbase, usable for
 # all support KB-SDK languages. It is currently built as a concatenation of the
 # existing set of language specific base images as of Feb 2018
@@ -130,6 +130,9 @@ RUN cd /tmp \
 	&& cd /tmp/jars \
 	&& cp -vr lib/jars /kb/deployment/lib/ \
 	&& rm -rf /tmp/*
+
+# Py3 version: should fix this upstream in auth eventually
+COPY log.py /kb/deployment/lib/biokbase/
 
 ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
