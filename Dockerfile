@@ -10,16 +10,15 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH=develop
 
-# Some common packages that are useful
+# Some common packages that are useful + Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get update -y \
 	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
-    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo
-
-# Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
-RUN apt-get install -y --no-install-recommends \
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo \
+	&& apt-get install -y --no-install-recommends \
 		bzip2 \
 		unzip \
-		xz-utils
+		xz-utils \
+	&& apt-get clean
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8
 
@@ -54,6 +53,7 @@ RUN set -ex; \
 	apt-get install -y \
 		openjdk-8-jdk-headless="$JAVA_DEBIAN_VERSION" \
 		ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
+		jetty9 \
 	; \
 	# verify that "docker-java-home" returns what we expect
 	[ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
@@ -61,14 +61,14 @@ RUN set -ex; \
 # update-alternatives so that future installs of other OpenJDK versions don't change /usr/bin/java
 	update-alternatives --get-selections | awk -v home="$(readlink -f "$JAVA_HOME")" 'index($3, home) == 1 { $2 = "manual"; print | "update-alternatives --set-selections" }'; \
 # ... and verify that it actually worked for one of the alternatives we care about
-	update-alternatives --query java | grep -q 'Status: manual'
+	update-alternatives --query java | grep -q 'Status: manual' ; \
+	apt-get clean
 
 # Install various servers by default
-RUN apt-get install -y jetty9 uwsgi 
 ENV JETTY_HOME /usr/share/jetty9
 
 # Python support
-RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip \
+RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip uwsgi \
     && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
     && pip install requests --upgrade \
     && pip install requests_toolbelt --upgrade \
@@ -76,30 +76,20 @@ RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip \
     && pip install coverage nose2 nose \
 	&& pip install --upgrade sphinx \
 	&& pip install wsgiref jsonrpcbase biopython \
-	&& pip3 install jsonrpcbase biopython
+	&& pip3 install jsonrpcbase biopython \
+	&& apt-get clean
 
-# Docker support
-#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-#	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
-#	&& apt-get update \
-#	&& apt-get install -y docker-ce
-
-# The Debian phantomjs is a little wonky and needs to have this set to run headless
-#ENV QT_QPA_PLATFORM=offscreen
-
-# Install kb-sdk in the image
+# Install kb-sdk in the image and setup legacy directories
 RUN mkdir /root/src \
 	&& cd /root/src \
 	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
 	&& make \
-	&& cp bin/kb-sdk /usr/local/bin
-
-# Setup some legacy directories and files
-RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
+	&& cp bin/kb-sdk /usr/local/bin \
+	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
 COPY user-env.sh /kb/deployment/user-env.sh
 
-# Setup support libraries
+# Setup support libraries and remove installation crud
 RUN cd /tmp \
 	&& git clone https://github.com/kbase/workspace_deluxe \
 	&& cd workspace_deluxe \
@@ -121,7 +111,8 @@ RUN cd /tmp \
 	&& git clone https://github.com/kbase/jars \
 	&& cd /tmp/jars \
 	&& cp -vr lib/jars /kb/deployment/lib/ \
-	&& rm -rf /tmp/*
+	&& rm -rf /tmp/* \
+	&& rm -rf /root/.cpanm
 
 ADD lib/biokbase/ /kb/deployment/lib/biokbase/
 
