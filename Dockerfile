@@ -87,7 +87,10 @@ RUN mkdir /root/src \
 	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
 	&& cd kb_sdk \
 	&& git checkout python3 \
-	&& make
+	&& make \
+	&& cp bin/kb-sdk /usr/local/bin \
+	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
+COPY user-env.sh /kb/deployment/user-env.sh
 
 # Python support
 RUN pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
@@ -99,10 +102,6 @@ RUN pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
 	&& pip install jsonrpcbase
 RUN conda install -c conda-forge uwsgi
 RUN conda install biopython
-
-# Setup some legacy directories and files
-RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
-COPY user-env.sh /kb/deployment/user-env.sh
 
 # Setup support libraries and remove installation crud
 RUN cd /tmp \
