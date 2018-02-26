@@ -10,16 +10,15 @@ ARG BUILD_DATE
 ARG VCS_REF
 ARG BRANCH=develop
 
-# Some common packages that are useful
+# Some common packages that are useful + Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get update -y \
 	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
-    	git apt-utils bzip2 unzip xz-utils ant rsync curl gnupg
-
-# Next lets bring in the Java runtime from the openjdk:8-jdk dockerfile
-RUN apt-get install -y --no-install-recommends \
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo gnupg \
+	&& apt-get install -y --no-install-recommends \
 		bzip2 \
 		unzip \
-		xz-utils
+		xz-utils \
+	&& apt-get clean
 # Default to UTF-8 file.encoding
 ENV LANG C.UTF-8
 
@@ -54,6 +53,7 @@ RUN set -ex; \
 	apt-get install -y \
 		openjdk-8-jdk-headless="$JAVA_DEBIAN_VERSION" \
 		ca-certificates-java="$CA_CERTIFICATES_JAVA_VERSION" \
+		jetty9 \
 	; \
 	# verify that "docker-java-home" returns what we expect
 	[ "$(readlink -f "$JAVA_HOME")" = "$(docker-java-home)" ]; \
@@ -61,10 +61,10 @@ RUN set -ex; \
 # update-alternatives so that future installs of other OpenJDK versions don't change /usr/bin/java
 	update-alternatives --get-selections | awk -v home="$(readlink -f "$JAVA_HOME")" 'index($3, home) == 1 { $2 = "manual"; print | "update-alternatives --set-selections" }'; \
 # ... and verify that it actually worked for one of the alternatives we care about
-	update-alternatives --query java | grep -q 'Status: manual'
+	update-alternatives --query java | grep -q 'Status: manual' ; \
+	apt-get clean
 
 # Install various servers by default
-RUN apt-get install -y jetty9
 ENV JETTY_HOME /usr/share/jetty9
 
 #install conda
@@ -73,24 +73,16 @@ RUN curl https://repo.continuum.io/miniconda/Miniconda3-4.3.31-Linux-x86_64.sh >
 ENV PATH=/miniconda/bin:${PATH}
 
 # Docker support
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
-	&& apt-get update \
-	&& apt-get install -y docker-ce
-
-# Install JS support
-RUN apt-get install -y phantomjs \
-    && mkdir -p /root/src \
-	&& cd ~/src \
-	&& git clone git://github.com/casperjs/casperjs.git \
-	&& cd casperjs \
-	&& ln -sf `pwd`/bin/casperjs /usr/local/bin/casperjs
+#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+#	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
+#	&& apt-get update \
+#	&& apt-get install -y docker-ce
 
 # The Debian phantomjs is a little wonky and needs to have this set to run headless
-ENV QT_QPA_PLATFORM=offscreen
+#ENV QT_QPA_PLATFORM=offscreen
 
 # Install kb-sdk in the image
-RUN mkdir -p /root/src \
+RUN mkdir /root/src \
 	&& cd /root/src \
 	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
 	&& cd kb_sdk \
@@ -112,7 +104,7 @@ RUN conda install biopython
 RUN mkdir -p /kb/deployment/lib /kb/deployment/lib
 COPY user-env.sh /kb/deployment/user-env.sh
 
-# Setup support libraries
+# Setup support libraries and remove installation crud
 RUN cd /tmp \
 	&& git clone https://github.com/kbase/workspace_deluxe \
 	&& cd workspace_deluxe \
@@ -122,6 +114,11 @@ RUN cd /tmp \
 	&& cd auth \
 	&& cp -vr python-libs/biokbase /kb/deployment/lib/ \
 	&& cp -vr Bio-KBase-Auth/lib/Bio /kb/deployment/lib/ \
+	&& cd /tmp \
+	&& cd /tmp \
+	&& git clone https://github.com/kbase/handle_mngr \
+	&& cd handle_mngr \
+	&& cp -vr lib/* /kb/deployment/lib/ \
 	&& cd ~/src/kb_sdk \
 	&& cp -vr lib/biokbase /kb/deployment/lib/ \
 	&& cp -vr lib/Bio /kb/deployment/lib/ \
@@ -129,12 +126,13 @@ RUN cd /tmp \
 	&& git clone https://github.com/kbase/jars \
 	&& cd /tmp/jars \
 	&& cp -vr lib/jars /kb/deployment/lib/ \
-	&& rm -rf /tmp/*
+	&& rm -rf /tmp/* \
+	&& rm -rf /root/.cpanm
 
-# Py3 version: should fix this upstream in auth eventually
+ADD lib/biokbase/ /kb/deployment/lib/biokbase/
 COPY log.py /kb/deployment/lib/biokbase/
 
-ENV PATH=$PATH:/root/src/kb_sdk/bin
+# ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
 ENV PYTHONPATH=/kb/deployment/lib
 ENV ANT_HOME=/usr/share/ant
