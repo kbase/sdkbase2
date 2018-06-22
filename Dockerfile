@@ -1,4 +1,4 @@
-FROM kbase/kb_perl:latest
+FROM kbase/kb_minideb:stretch
 # This container is intended to be a slightly updated version of sdkbase, usable for
 # all support KB-SDK languages. It is currently built as a concatenation of the
 # existing set of language specific base images as of Feb 2018
@@ -13,7 +13,7 @@ ARG BRANCH=develop
 # Some common packages that are useful + Java runtime from the openjdk:8-jdk dockerfile
 RUN apt-get update -y \
 	&& apt-get install -y apt-transport-https ca-certificates make software-properties-common \
-    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo \
+    	git apt-utils bzip2 unzip xz-utils ant rsync curl sudo gnupg \
 	&& apt-get install -y --no-install-recommends \
 		bzip2 \
 		unzip \
@@ -67,27 +67,41 @@ RUN set -ex; \
 # Install various servers by default
 ENV JETTY_HOME /usr/share/jetty9
 
-# Python support
-RUN apt-get install -y python-dev libssl-dev python3-minimal python3-pip uwsgi \
-    && pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
-    && pip install requests --upgrade \
-    && pip install requests_toolbelt --upgrade \
-    && pip install 'requests[security]' --upgrade \
-    && pip install coverage nose2 nose \
-	&& pip install --upgrade sphinx \
-	&& pip install wsgiref jsonrpcbase biopython \
-	&& pip3 install jsonrpcbase biopython \
-	&& apt-get clean
+#install conda
+RUN curl https://repo.continuum.io/miniconda/Miniconda3-4.3.31-Linux-x86_64.sh > miniconda.sh && \
+    bash miniconda.sh -b -p /miniconda
+ENV PATH=/miniconda/bin:${PATH}
 
-# Install kb-sdk in the image and setup legacy directories
+# Docker support
+#RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+#	&& add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable" \
+#	&& apt-get update \
+#	&& apt-get install -y docker-ce
+
+# The Debian phantomjs is a little wonky and needs to have this set to run headless
+#ENV QT_QPA_PLATFORM=offscreen
+
+# Install kb-sdk in the image
 RUN mkdir /root/src \
 	&& cd /root/src \
-	&& git clone https://github.com/kbase/kb_sdk.git \
+	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
 	&& cd kb_sdk \
+	&& git checkout python3 \
 	&& make \
 	&& cp bin/kb-sdk /usr/local/bin \
 	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
 COPY user-env.sh /kb/deployment/user-env.sh
+
+# Python support
+RUN pip install pyopenssl ndg-httpsclient pyasn1 pyyaml gitpython \
+    && pip install requests --upgrade \
+    && pip install requests_toolbelt --upgrade \
+    && pip install 'requests[security]' --upgrade \
+    && pip install coverage nose nose2 \
+	&& pip install --upgrade sphinx \
+	&& pip install jsonrpcbase
+RUN conda install -c conda-forge uwsgi
+RUN conda install biopython
 
 # Setup support libraries and remove installation crud
 RUN cd /tmp \
@@ -115,6 +129,7 @@ RUN cd /tmp \
 	&& rm -rf /root/.cpanm
 
 ADD lib/biokbase/ /kb/deployment/lib/biokbase/
+COPY log.py /kb/deployment/lib/biokbase/
 
 # ENV PATH=$PATH:/root/src/kb_sdk/bin
 ENV PERL5LIB=/kb/deployment/lib
