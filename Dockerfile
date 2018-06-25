@@ -86,7 +86,7 @@ RUN mkdir /root/src \
 	&& cd /root/src \
 	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
 	&& cd kb_sdk \
-	&& git checkout python3 \
+	&& git checkout 5242615c0582fe47e041112d6a5134e63da01d89 \
 	&& make \
 	&& cp bin/kb-sdk /usr/local/bin \
 	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
