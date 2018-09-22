@@ -36,8 +36,8 @@ RUN { \
 RUN ln -svT "/usr/lib/jvm/java-8-openjdk-$(dpkg --print-architecture)" /docker-java-home
 ENV JAVA_HOME /docker-java-home
 
-ENV JAVA_VERSION 8u171
-ENV JAVA_DEBIAN_VERSION 8u171-b11-1~deb9u1
+ENV JAVA_VERSION 8u181
+ENV JAVA_DEBIAN_VERSION 8u181-b13-1~deb9u1
 
 # see https://bugs.debian.org/775775
 # and https://github.com/docker-library/java/issues/19#issuecomment-70546872
@@ -84,9 +84,9 @@ ENV PATH=/miniconda/bin:${PATH}
 # Install kb-sdk in the image
 RUN mkdir /root/src \
 	&& cd /root/src \
-	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
+	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
-	&& git checkout 5242615c0582fe47e041112d6a5134e63da01d89 \
+	&& git checkout aa2b6f2eb5d7b28cfd1ce2197764076a09050972 \
 	&& make \
 	&& cp bin/kb-sdk /usr/local/bin \
 	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
