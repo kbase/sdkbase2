@@ -84,9 +84,9 @@ ENV PATH=/miniconda/bin:${PATH}
 # Install kb-sdk in the image
 RUN mkdir /root/src \
 	&& cd /root/src \
-	&& git clone https://github.com/JamesJeffryes/kb_sdk.git \
+	&& git clone https://github.com/kbase/kb_sdk.git \
 	&& cd kb_sdk \
-	&& git checkout 5242615c0582fe47e041112d6a5134e63da01d89 \
+	&& git checkout aa2b6f2eb5d7b28cfd1ce2197764076a09050972 \
 	&& make \
 	&& cp bin/kb-sdk /usr/local/bin \
 	&& mkdir -p /kb/deployment/lib /kb/deployment/lib
